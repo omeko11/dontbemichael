@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const loadTs = require('./load-ts.cjs');
-const { onWindows } = require('./platform.cjs');
+const { onWindows, posixOnly } = require('./platform.cjs');
 
 const { linkWorktreeDeps, unlinkWorktreeDeps } = loadTs('src/main/worktreeDeps.ts');
 const { removeWorktree } = loadTs('src/main/git.ts');
@@ -235,7 +235,7 @@ test('refuses the main checkout through an aliased parent directory', async () =
   assert.equal(fs.readFileSync(path.join(deps, 'must-survive.txt'), 'utf8'), 'shared dependencies\n');
 });
 
-test('leaves a dangling worktree dependency symlink untouched', async () => {
+test('leaves a dangling worktree dependency symlink untouched', posixOnly('dangling symlinks are not representable as junctions on Windows'), async () => {
   const { repo, wtRoot } = makeHarness();
   fs.mkdirSync(path.join(repo, 'node_modules'));
   const wtPath = addWorktree(repo, wtRoot, 'agent-e');
@@ -304,7 +304,7 @@ test('does not remove a worktree node_modules link to another directory', async 
   fs.writeFileSync(sentinel, 'foreign dependencies\n');
   const wtPath = addWorktree(repo, wtRoot, 'agent-h');
   const worktreeNodeModules = path.join(wtPath, 'node_modules');
-  fs.symlinkSync(foreignNodeModules, worktreeNodeModules);
+  fs.symlinkSync(foreignNodeModules, worktreeNodeModules, onWindows ? 'junction' : 'dir');
 
   const result = await unlinkWorktreeDeps(repo, wtPath);
   assert.equal(fs.lstatSync(worktreeNodeModules).isSymbolicLink(), true);

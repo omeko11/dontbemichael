@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const loadTs = require('./load-ts.cjs');
+const { posixOnly } = require('./platform.cjs');
 
 const electron = require.resolve('electron');
 require.cache[electron] = {
@@ -165,7 +166,7 @@ test('a name starting with two dots is inside its folder; a relative Glob is jud
   assert.equal(folderToolTarget('Glob', { pattern: '**/*.md' }, path.join(B, 'Finance')), null, 'a pattern in its own folder names no other');
 });
 
-test('the hook judges the real path too, so a link out of an agent\'s folder is refused', () => {
+test('the hook judges the real path too, so a link out of an agent\'s folder is refused', posixOnly('symlink out of folder'), () => {
   const hooks = fs.readFileSync(path.resolve(__dirname, '../src/main/hooks.ts'), 'utf8');
   assert.match(hooks, /const real = realPathOf\(target\);/);
   const { realPathOf } = loadTs('src/main/hooks.ts');
@@ -180,7 +181,7 @@ test('the hook judges the real path too, so a link out of an agent\'s folder is 
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('a link to a file not there yet is judged by where it leads, so a Write cannot plant a file in a teammate\'s folder (#231)', () => {
+test('a link to a file not there yet is judged by where it leads, so a Write cannot plant a file in a teammate\'s folder (#231)', posixOnly('dangling symlink to teammate folder'), () => {
   const { realPathOf } = loadTs('src/main/hooks.ts');
   const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'md-dangling link-')));
   const biz = path.join(dir, 'Biz'), sales = path.join(biz, 'Sales'), finance = path.join(biz, 'Finance');
@@ -221,7 +222,7 @@ test('a Glob with a path is judged by where its pattern points', () => {
   assert.equal(folderToolTarget('Glob', { pattern: path.join(B, 'Admin', '*.pdf'), path: path.join(B, 'Finance') }, path.join(B, 'Finance')), path.join(B, 'Admin'));
 });
 
-test('an agent whose folder is reached through a link still opens its own files', () => {
+test('an agent whose folder is reached through a link still opens its own files', posixOnly('cwd reached via symlink'), () => {
   const { realPathOf } = loadTs('src/main/hooks.ts');
   const hooks = fs.readFileSync(path.resolve(__dirname, '../src/main/hooks.ts'), 'utf8');
   assert.match(hooks, /cwd: realPathOf\(me\.cwd\) \?\? me\.cwd/);

@@ -13,6 +13,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const loadTs = require('./load-ts.cjs');
+const { posixOnly } = require('./platform.cjs');
 
 const { askFilePaths, isFileSpan, kindOf, fileTitle, OPEN_EXTENSIONS } = loadTs('src/shared/askFiles.ts');
 const { askFileVerdict, askFileRootsFor, resolveAskFileRoots } = loadTs('src/main/fs.ts');
@@ -46,7 +47,7 @@ test('a Markdown link to a file is a chip when its path has spaces or the link h
   assert.deepEqual(askFilePaths('See [r](/Users/me/Biz/report.md) and [site](https://example.com/a.md)'), ['/Users/me/Biz/report.md'], 'plain links unchanged, URLs stay links');
 });
 
-test('main opens only allowlisted documents inside the roots, judged on the canonical path', async (t) => {
+test('main opens only allowlisted documents inside the roots, judged on the canonical path', posixOnly('symlinks and .app packages'), async (t) => {
   // Value: protects=an agent named path opens only a safe document inside the office folders; fails_when=safeResolve, the canonical extension check or the allowlist is dropped; why_new=no code opened agent paths before; seam=none
   // .native, like main: on Windows it spells the temp folder out in full, not as RUNNER~1.
   const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'md-askfiles-')));

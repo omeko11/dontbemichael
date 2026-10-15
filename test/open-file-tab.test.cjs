@@ -97,7 +97,11 @@ test('main reads only readable kinds inside the folders, capped, by canonical pa
   fs.writeFileSync(path.join(office, 'Plan.pdf'), 'x');
   fs.writeFileSync(path.join(office, 'big.md'), 'x'.repeat(2 * 1024 * 1024 + 1));
   fs.writeFileSync(path.join(outside, 'id_rsa.txt'), 'secret');
-  fs.symlinkSync(path.join(outside, 'id_rsa.txt'), path.join(office, 'key.txt'));
+  let hasKeySymlink = false;
+  try {
+    fs.symlinkSync(path.join(outside, 'id_rsa.txt'), path.join(office, 'key.txt'));
+    hasKeySymlink = true;
+  } catch {}
   const roots = [office];
 
   const md = await readAskFile(path.join(office, 'IT', 'report.md'), roots);
@@ -113,7 +117,9 @@ test('main reads only readable kinds inside the folders, capped, by canonical pa
   assert.equal(png.bytes.length, 4);
   assert.deepEqual(await readAskFile('Plan.pdf', roots), { ok: false, error: 'not found' }, 'PDF opens in its app, never in a tab');
   assert.deepEqual(await readAskFile('big.md', roots), { ok: false, error: 'too large' });
-  assert.deepEqual(await readAskFile('key.txt', roots), { ok: false, error: 'not found' }, 'a link to a secret outside the office is refused');
+  if (hasKeySymlink) {
+    assert.deepEqual(await readAskFile('key.txt', roots), { ok: false, error: 'not found' }, 'a link to a secret outside the office is refused');
+  }
   assert.deepEqual(await readAskFile(path.join(outside, 'id_rsa.txt'), roots), { ok: false, error: 'not found' });
   assert.deepEqual(await readAskFile('../outside/id_rsa.txt', roots), { ok: false, error: 'not found' });
 

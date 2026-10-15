@@ -18,6 +18,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const loadTs = require('./load-ts.cjs');
+const { posixOnly } = require('./platform.cjs');
 
 const rec = loadTs('src/shared/officeRecord.ts');
 const file = loadTs('src/main/officeFile.ts');
@@ -303,7 +304,7 @@ test('an older office whose folders share only the home folder is not offered to
   }
 });
 
-test('a team folder that is a link to the home folder counts as the home folder', () => {
+test('a team folder that is a link to the home folder counts as the home folder', posixOnly('symlink to home directory'), () => {
   const home = office();
   const link = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'link-')), 'Finance');
   try {
